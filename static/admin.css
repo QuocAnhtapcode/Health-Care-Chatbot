@@ -1,0 +1,37 @@
+.admin__container {
+    padding: 5rem 2rem;
+}
+
+.admin__container h2 {
+    margin-bottom: 2rem;
+    color: var(--primary-color-dark);
+}
+
+.appointments__table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--white);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.appointments__table th, .appointments__table td {
+    padding: 1rem;
+    text-align: left;
+    color: var(--text-dark);
+}
+
+.appointments__table th {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.appointments__table tr:nth-child(even) {
+    background-color: var(--primary-color-light);
+}
+
+.appointments__table tr:hover {
+    background-color: var(--primary-color-light);
+    cursor: pointer;
+}
