@@ -25,6 +25,7 @@ class AppointmentService:
                 }
 
             success = self.db_service.create_appointment(
+                user_id=appointment_data['user_id'],
                 name=appointment_data.get('name'),
                 phone=appointment_data.get('phone'),
                 address=appointment_data.get('address'),
@@ -52,10 +53,10 @@ class AppointmentService:
             formatted_appointments = []
             for appt in appointments:
                 formatted_appt = list(appt)
-                if isinstance(appt[4], datetime):
-                    formatted_appt[4] = appt[4].strftime('%Y-%m-%d')
-                if isinstance(appt[5], time):
-                    formatted_appt[5] = appt[5].strftime('%H:%M')
+                if isinstance(appt[5], datetime):
+                    formatted_appt[5] = appt[5].strftime('%Y-%m-%d')
+                if isinstance(appt[6], time):
+                    formatted_appt[6] = appt[6].strftime('%H:%M')
                 formatted_appointments.append(formatted_appt)
             
             return {

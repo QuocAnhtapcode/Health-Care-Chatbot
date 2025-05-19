@@ -12,17 +12,39 @@ class DatabaseService:
             database="healthcare"
         )
         self.cursor = self.connection.cursor()
+        self.create_tables()
 
-    def create_appointment(self, name: str, phone: str, address: str, 
+    def create_tables(self):
+        try:
+            # Create appointments table with user_id
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS appointments (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    phone VARCHAR(20) NOT NULL,
+                    address TEXT NOT NULL,
+                    appointment_date DATE NOT NULL,
+                    appointment_time TIME NOT NULL,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """)
+            self.connection.commit()
+        except Exception as e:
+            print(f"Error creating tables: {e}")
+
+    def create_appointment(self, user_id: int, name: str, phone: str, address: str, 
                          appointment_date: datetime, appointment_time: time,
                          description: str) -> bool:
         try:
             sql = """
                 INSERT INTO appointments 
-                (name, phone, address, appointment_date, appointment_time, description) 
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (user_id, name, phone, address, appointment_date, appointment_time, description) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            self.cursor.execute(sql, (name, phone, address, appointment_date, 
+            self.cursor.execute(sql, (user_id, name, phone, address, appointment_date, 
                                     appointment_time, description))
             self.connection.commit()
             return True
@@ -33,7 +55,9 @@ class DatabaseService:
     def get_all_appointments(self) -> List[Tuple]:
         try:
             self.cursor.execute("""
-                SELECT * FROM appointments 
+                SELECT a.*, u.username 
+                FROM appointments a
+                JOIN users u ON a.user_id = u.id
                 ORDER BY appointment_date, appointment_time
             """)
             return self.cursor.fetchall()
