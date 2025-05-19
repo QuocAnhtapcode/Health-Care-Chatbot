@@ -1,7 +1,8 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
 from dotenv import load_dotenv
 import os
-from datetime import datetime
+from datetime import datetime, time, timedelta
+from typing import List
 
 from services.chat_service.chat_service import ChatService
 from services.appointment_service.appointment_service import AppointmentService
@@ -37,10 +38,10 @@ def chat():
 
 @app.route("/get-available-slots", methods=["POST"])
 def get_available_slots():
+    """API lấy danh sách các khung giờ còn trống cho một ngày cụ thể."""
     date = request.form.get("date")
     if not date:
         return jsonify({"error": "Date is required"}), 400
-    
     slots = appointment_service.get_available_slots(date)
     return jsonify({"slots": slots})
 
@@ -55,13 +56,15 @@ def book_appointment():
             'time': request.form['time'],
             'description': request.form['description']
         }
-        
+        print("[app.py] Dữ liệu nhận được từ form:", appointment_data)
+
         result = appointment_service.create_appointment(appointment_data)
+        print("[app.py] Kết quả trả về:", result)
+
         if result['success']:
             flash('Appointment booked successfully!', 'success')
         else:
-            flash('Failed to book appointment. Please try again.', 'error')
-            
+            flash(result['message'], 'error')
         return redirect(url_for('index'))
     except Exception as e:
         flash(f'Error: {str(e)}', 'error')

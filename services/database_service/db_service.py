@@ -1,6 +1,7 @@
 import mysql.connector
 from typing import List, Tuple, Dict, Any
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+
 
 class DatabaseService:
     def __init__(self):
@@ -42,35 +43,40 @@ class DatabaseService:
 
     def get_available_slots(self, date: datetime) -> List[time]:
         try:
-            # Lấy tất cả các slot đã đặt cho ngày cụ thể
             sql = """
                 SELECT appointment_time 
                 FROM appointments 
                 WHERE appointment_date = %s
             """
             self.cursor.execute(sql, (date,))
-            booked_slots = [row[0] for row in self.cursor.fetchall()]
+            booked_slots_raw = self.cursor.fetchall()
 
-            # Tạo danh sách tất cả các slot có thể đặt (30 phút một slot)
+            # Ép kiểu về time nếu là timedelta
+            booked_slots = [
+                (datetime.min + row[0]).time() if isinstance(row[0], timedelta) else row[0]
+                for row in booked_slots_raw
+            ]
+            print("[db_service.py] Các slot đã được đặt:", booked_slots)
+
             all_slots = []
-            start_time = time(8, 0)  # 8:00 AM
-            end_time = time(22, 0)   # 10:00 PM
-
+            start_time = time(8, 0)
+            end_time = time(22, 0)
             current_time = start_time
+
             while current_time < end_time:
                 if current_time not in booked_slots:
                     all_slots.append(current_time)
-                # Thêm 30 phút
                 current_time = time(
                     current_time.hour + (current_time.minute + 30) // 60,
                     (current_time.minute + 30) % 60
                 )
 
+            print("[db_service.py] Slot khả dụng trả về:", all_slots)
             return all_slots
         except Exception as e:
-            print(f"Error getting available slots: {e}")
+            print("[db_service.py] Lỗi:", e)
             return []
-
+    
     def close(self):
         self.cursor.close()
         self.connection.close() 

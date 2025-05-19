@@ -8,10 +8,22 @@ class AppointmentService:
 
     def create_appointment(self, appointment_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            # Chuyển đổi chuỗi ngày và giờ thành datetime và time objects
+            print("[appointment_service.py] Nhận dữ liệu:", appointment_data)
+
             appointment_date = datetime.strptime(appointment_data['date'], '%Y-%m-%d').date()
             appointment_time = datetime.strptime(appointment_data['time'], '%H:%M').time()
-            
+
+            available_slots = self.get_available_slots(appointment_data['date'])
+            print("[appointment_service.py] Khung giờ còn trống:", available_slots)
+
+            slot_str = appointment_time.strftime('%H:%M')
+            if slot_str not in available_slots:
+                print(f"[appointment_service.py] Slot {slot_str} đã bị đặt!")
+                return {
+                    'success': False,
+                    'message': 'Time slot already booked! Please choose another slot.'
+                }
+
             success = self.db_service.create_appointment(
                 name=appointment_data.get('name'),
                 phone=appointment_data.get('phone'),
@@ -20,11 +32,14 @@ class AppointmentService:
                 appointment_time=appointment_time,
                 description=appointment_data.get('description')
             )
+            print("[appointment_service.py] Đặt lịch thành công:", success)
+
             return {
                 'success': success,
                 'message': 'Appointment created successfully' if success else 'Failed to create appointment'
             }
         except Exception as e:
+            print("[appointment_service.py] Lỗi:", e)
             return {
                 'success': False,
                 'message': f'Error creating appointment: {str(e)}'
