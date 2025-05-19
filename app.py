@@ -1,52 +1,24 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for
-from src.helper import download_hugging_face_embeddings
-from langchain_pinecone import PineconeVectorStore
-from langchain_openai import OpenAI
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
 from dotenv import load_dotenv
-from src.prompt import *
 import os
-import mysql.connector
+from datetime import datetime
+
+from services.chat_service.chat_service import ChatService
+from services.appointment_service.appointment_service import AppointmentService
+from services.vector_store_service.vector_service import VectorStoreService
 
 app = Flask(__name__)
 
 # Load environment variables
 load_dotenv()
 
-PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+# Initialize services
+chat_service = ChatService()
+appointment_service = AppointmentService()
+vector_service = VectorStoreService()
 
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-
-# Initialize embeddings and vector store
-embeddings = download_hugging_face_embeddings()
-index_name = "healthcarebot"
-docsearch = PineconeVectorStore.from_existing_index(
-    index_name=index_name,
-    embedding=embeddings
-)
-retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-
-# Setup LLM and prompt chain
-llm = OpenAI(temperature=0.4, max_tokens=500)
-prompt = ChatPromptTemplate.from_messages([
-    ("system", system_prompt),
-    ("human", "{input}"),
-])
-question_answer_chain = create_stuff_documents_chain(llm, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-
-# Setup MySQL connection
-mysql_db = mysql.connector.connect(
-    host="localhost",
-    user="root", 
-    password="1234",  
-    database="healthcare"
-)
-cursor = mysql_db.cursor()
+# Thiết lập secret key
+app.secret_key = os.urandom(24)  # Tạo một secret key ngẫu nhiên
 
 # Routes
 @app.route("/")
@@ -60,30 +32,48 @@ def chat_page():
 @app.route("/get", methods=["GET", "POST"])
 def chat():
     msg = request.form["msg"]
-    input = msg
-    print(input)
-    response = rag_chain.invoke({"input": msg})
-    print("Response : ", response["answer"])
+    response = chat_service.get_response(msg)
     return str(response["answer"])
 
-@app.route("/book", methods=["POST"])
-def book():
-    first_name = request.form["first_name"]
-    last_name = request.form["last_name"]
-    address = request.form["address"]
-    phone = request.form["phone"]
+@app.route("/get-available-slots", methods=["POST"])
+def get_available_slots():
+    date = request.form.get("date")
+    if not date:
+        return jsonify({"error": "Date is required"}), 400
+    
+    slots = appointment_service.get_available_slots(date)
+    return jsonify({"slots": slots})
 
-    sql = "INSERT INTO appointments (first_name, last_name, address, phone) VALUES (%s, %s, %s, %s)"
-    cursor.execute(sql, (first_name, last_name, address, phone))
-    mysql_db.commit()
-
-    return redirect(url_for("index"))
+@app.route('/book', methods=['POST'])
+def book_appointment():
+    try:
+        appointment_data = {
+            'name': request.form['name'],
+            'phone': request.form['phone'],
+            'address': request.form['address'],
+            'date': request.form['date'],
+            'time': request.form['time'],
+            'description': request.form['description']
+        }
+        
+        result = appointment_service.create_appointment(appointment_data)
+        if result['success']:
+            flash('Appointment booked successfully!', 'success')
+        else:
+            flash('Failed to book appointment. Please try again.', 'error')
+            
+        return redirect(url_for('index'))
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
 @app.route("/admin/appointments")
 def admin_appointments():
-    cursor.execute("SELECT * FROM appointments ORDER BY created_at DESC")
-    appointments = cursor.fetchall()
-    return render_template("admin_appointments.html", appointments=appointments)
+    result = appointment_service.get_all_appointments()
+    return render_template("admin_appointments.html", appointments=result['appointments'])
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    try:
+        app.run(host="0.0.0.0", port=8080, debug=True)
+    finally:
+        appointment_service.close()

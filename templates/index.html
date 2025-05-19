@@ -8,6 +8,38 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="static/styles.css" />
+    <style>
+      .header__form select {
+        width: 100%;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+      }
+
+      .header__form select:hover {
+        border-color: #2d8cf0;
+      }
+
+      .header__form select:focus {
+        outline: none;
+        border-color: #2d8cf0;
+        box-shadow: 0 0 0 2px rgba(45, 140, 240, 0.2);
+      }
+
+      .header__form select option {
+        padding: 0.8rem;
+        font-size: 1rem;
+      }
+
+      .header__form select option:hover {
+        background-color: #f0f7ff;
+      }
+    </style>
     <title>Web Design Mastery | HealthCare</title>
   </head>
   <body>
@@ -21,7 +53,7 @@
           <li class="link"><a href="#pages">Pages</a></li>
           <li class="link"><a href="#blog">Blog</a></li>
         </ul>
-        <a href="/chat" class="btn">Contact Us</a>
+        <a href="/chat" class="btn">Chatbot</a>
       </nav>
       <div class="section__container header__container" id="home">
         <div class="header__content">
@@ -37,10 +69,14 @@
         <div class="header__form">
           <form action="/book" method="POST">
             <h4>Book Now</h4>
-            <input type="text" name="first_name" placeholder="First Name" required />
-            <input type="text" name="last_name" placeholder="Last Name" required />
+            <input type="text" name="name" placeholder="Full Name" required />
+            <input type="text" name="phone" placeholder="Phone Number" required />
             <input type="text" name="address" placeholder="Address" required />
-            <input type="text" name="phone" placeholder="Phone No." required />
+            <input type="date" name="date" required />
+            <select name="time" required class="time-slot-select">
+              <option value="">Select Time Slot</option>
+            </select>
+            <input type="text" name="description" placeholder="Describe your symptoms" required />
             <button type="submit" class="btn form__btn">Book Appointment</button>
           </form>
         </div>        
@@ -253,5 +289,31 @@
         </div>
       </div>
     </footer>
+    <script>
+      document.querySelector('input[name="date"]').addEventListener('change', function(e) {
+        const date = e.target.value;
+        if (date) {
+          fetch('/get-available-slots', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `date=${date}`
+          })
+          .then(response => response.json())
+          .then(data => {
+            const timeSelect = document.querySelector('select[name="time"]');
+            timeSelect.innerHTML = '<option value="">Select Time Slot</option>';
+            data.slots.forEach(slot => {
+              const option = document.createElement('option');
+              option.value = slot;
+              option.textContent = slot;
+              timeSelect.appendChild(option);
+            });
+          })
+          .catch(error => console.error('Error:', error));
+        }
+      });
+    </script>
   </body>
 </html>
