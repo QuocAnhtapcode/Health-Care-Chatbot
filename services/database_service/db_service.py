@@ -31,6 +31,21 @@ class DatabaseService:
                     FOREIGN KEY (user_id) REFERENCES users(id)
                 )
             """)
+
+            # Create prescriptions table
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS prescriptions (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    doctor_name VARCHAR(100) NOT NULL,
+                    diagnosis TEXT NOT NULL,
+                    medications TEXT NOT NULL,
+                    notes TEXT,
+                    prescription_date DATE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """)
             self.connection.commit()
         except Exception as e:
             print(f"Error creating tables: {e}")
@@ -51,6 +66,49 @@ class DatabaseService:
         except Exception as e:
             print(f"Error creating appointment: {e}")
             return False
+
+    def create_prescription(self, user_id: int, doctor_name: str, diagnosis: str,
+                          medications: str, notes: str, prescription_date: datetime) -> bool:
+        try:
+            sql = """
+                INSERT INTO prescriptions 
+                (user_id, doctor_name, diagnosis, medications, notes, prescription_date) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            self.cursor.execute(sql, (user_id, doctor_name, diagnosis, medications, 
+                                    notes, prescription_date))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print(f"Error creating prescription: {e}")
+            return False
+
+    def get_user_prescriptions(self, user_id: int) -> List[Tuple]:
+        try:
+            self.cursor.execute("""
+                SELECT p.*, u.username 
+                FROM prescriptions p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.user_id = %s
+                ORDER BY p.prescription_date DESC
+            """, (user_id,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print(f"Error fetching user prescriptions: {e}")
+            return []
+
+    def get_all_prescriptions(self) -> List[Tuple]:
+        try:
+            self.cursor.execute("""
+                SELECT p.*, u.username 
+                FROM prescriptions p
+                JOIN users u ON p.user_id = u.id
+                ORDER BY p.prescription_date DESC
+            """)
+            return self.cursor.fetchall()
+        except Exception as e:
+            print(f"Error fetching all prescriptions: {e}")
+            return []
 
     def get_all_appointments(self) -> List[Tuple]:
         try:

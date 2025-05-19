@@ -9,6 +9,7 @@ from services.chat_service.chat_service import ChatService
 from services.appointment_service.appointment_service import AppointmentService
 from services.vector_store_service.vector_service import VectorStoreService
 from services.user_service.user_service import UserService
+from services.prescription_service.prescription_service import PrescriptionService
 
 app = Flask(__name__)
 
@@ -20,6 +21,7 @@ chat_service = ChatService()
 appointment_service = AppointmentService()
 vector_service = VectorStoreService()
 user_service = UserService()
+prescription_service = PrescriptionService()
 
 # Thiết lập secret key
 app.secret_key = os.urandom(24)  # Tạo một secret key ngẫu nhiên
@@ -29,8 +31,19 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Please login to access this page', 'error')
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Admin required decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        # Kiểm tra xem user có phải là admin không (giả sử admin có id = 1)
+        if session.get('user_id') != 1:
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -51,10 +64,7 @@ def login():
         if result['success']:
             session['user_id'] = result['user']['id']
             session['username'] = result['user']['username']
-            flash('Login successful!', 'success')
             return redirect(url_for('index'))
-        else:
-            flash(result['message'], 'error')
     
     return render_template('login.html')
 
@@ -71,17 +81,13 @@ def register():
         
         result = user_service.register_user(user_data)
         if result['success']:
-            flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
-        else:
-            flash(result['message'], 'error')
     
     return render_template('register.html')
 
 @app.route("/logout")
 def logout():
     session.clear()
-    flash('You have been logged out', 'success')
     return redirect(url_for('login'))
 
 @app.route("/chat")
@@ -125,19 +131,48 @@ def book_appointment():
         print("[app.py] Kết quả trả về:", result)
 
         if result['success']:
-            flash('Appointment booked successfully!', 'success')
-        else:
-            flash(result['message'], 'error')
-        return redirect(url_for('index'))
+            return redirect(url_for('index'))
     except Exception as e:
-        flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('index'))
 
 @app.route("/admin/appointments")
-@login_required
+@admin_required
 def admin_appointments():
     result = appointment_service.get_all_appointments()
     return render_template("admin_appointments.html", appointments=result['appointments'])
+
+@app.route("/prescriptions")
+@login_required
+def view_prescriptions():
+    result = prescription_service.get_user_prescriptions(session['user_id'])
+    return render_template("prescriptions.html", prescriptions=result['prescriptions'])
+
+@app.route("/admin/prescriptions", methods=['GET', 'POST'])
+@admin_required
+def admin_prescriptions():
+    result = prescription_service.get_all_prescriptions()
+    users = user_service.get_all_users()
+    return render_template("admin_prescriptions.html", 
+                         prescriptions=result['prescriptions'],
+                         users=users)
+
+@app.route("/admin/prescriptions/create", methods=['POST'])
+@admin_required
+def create_prescription():
+    try:
+        prescription_data = {
+            'user_id': request.form['user_id'],
+            'doctor_name': request.form['doctor_name'],
+            'diagnosis': request.form['diagnosis'],
+            'medications': request.form['medications'],
+            'notes': request.form.get('notes', '')
+        }
+        
+        result = prescription_service.create_prescription(prescription_data)
+        if result['success']:
+            return redirect(url_for('admin_prescriptions'))
+    except Exception as e:
+        return redirect(url_for('admin_prescriptions'))
 
 if __name__ == '__main__':
     try:
@@ -145,3 +180,4 @@ if __name__ == '__main__':
     finally:
         appointment_service.close()
         user_service.close()
+        prescription_service.close()

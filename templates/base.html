@@ -53,20 +53,6 @@
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    <div class="container flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
     <!-- Main Content -->
     <div class="container main-content">
         {% block content %}{% endblock %}

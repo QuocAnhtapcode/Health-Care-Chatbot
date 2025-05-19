@@ -108,6 +108,17 @@ class UserService:
             print(f"Error getting user: {e}")
             return None
 
+    def get_all_users(self):
+        try:
+            cursor = self.connection.cursor(dictionary=True)
+            cursor.execute("SELECT id, username, full_name FROM users")
+            users = cursor.fetchall()
+            cursor.close()
+            return users
+        except Exception as e:
+            print(f"Error fetching all users: {e}")
+            return []
+
     def close(self):
         if self.connection and self.connection.is_connected():
             self.connection.close()
