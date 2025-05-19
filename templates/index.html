@@ -53,7 +53,14 @@
           <li class="link"><a href="#pages">Pages</a></li>
           <li class="link"><a href="#blog">Blog</a></li>
         </ul>
+        {% if session.get('username') %}
+        <div class="nav__buttons">
+          <a href="/chat" class="btn">Chatbot</a>
+          <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+        {% else %}
         <a href="/chat" class="btn">Chatbot</a>
+        {% endif %}
       </nav>
       <div class="section__container header__container" id="home">
         <div class="header__content">
