@@ -10,14 +10,11 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Healthcare Chatbot</a>
+            <a class="navbar-brand" href="#">Healthcare Chatbot</a>
             <div class="navbar-nav ms-auto">
-                {% if session.get('username') %}
-                    <span class="nav-item nav-link">Welcome, {{ session.get('username') }}!</span>
-                    <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
-                {% else %}
-                    <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
-                    <a class="nav-item nav-link" href="{{ url_for('register') }}">Register</a>
+                {% if session.get('admin_username') %}
+                    <span class="nav-item nav-link">Welcome, {{ session.get('admin_username') }}!</span>
+                    <a class="nav-item nav-link" href="{{ url_for('admin_logout') }}">Logout</a>
                 {% endif %}
             </div>
         </div>
@@ -25,16 +22,16 @@
 
     <div class="container mt-5">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <h3>Create New Prescription</h3>
+                        <h3 class="h5 mb-0">Create New Prescription</h3>
                     </div>
                     <div class="card-body">
                         <form action="{{ url_for('create_prescription') }}" method="POST">
                             <div class="mb-3">
                                 <label for="user_id" class="form-label">Patient</label>
-                                <select class="form-control" id="user_id" name="user_id" required>
+                                <select class="form-select" id="user_id" name="user_id" required>
                                     <option value="">Select Patient</option>
                                     {% for user in users %}
                                     <option value="{{ user.id }}">{{ user.username }} ({{ user.full_name }})</option>
@@ -47,26 +44,25 @@
                             </div>
                             <div class="mb-3">
                                 <label for="diagnosis" class="form-label">Diagnosis</label>
-                                <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" required></textarea>
+                                <textarea class="form-control" id="diagnosis" name="diagnosis" rows="2" required></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="medications" class="form-label">Medications</label>
-                                <textarea class="form-control" id="medications" name="medications" rows="3" required></textarea>
+                                <textarea class="form-control" id="medications" name="medications" rows="2" required></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="notes" class="form-label">Notes</label>
-                                <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                                <textarea class="form-control" id="notes" name="notes" rows="1"></textarea>
                             </div>
-                            <button type="submit" class="btn btn-primary">Create Prescription</button>
+                            <button type="submit" class="btn btn-primary w-100">Create Prescription</button>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="col-md-8">
-                <h2>All Prescriptions</h2>
-
+                <h2 class="mb-4">All Prescriptions</h2>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped align-middle">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -95,20 +91,17 @@
                         </tbody>
                     </table>
                 </div>
-
                 {% if not prescriptions %}
-                <div class="alert alert-info">
+                <div class="alert alert-info mt-3">
                     No prescriptions found.
                 </div>
                 {% endif %}
             </div>
         </div>
-
-        <div class="mt-3">
-            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Home</a>
+        <div class="mt-4 text-end">
+            <a href="{{ url_for('admin_appointments') }}" class="btn btn-secondary">Back to Appointments</a>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

@@ -10,6 +10,7 @@ from services.appointment_service.appointment_service import AppointmentService
 from services.vector_store_service.vector_service import VectorStoreService
 from services.user_service.user_service import UserService
 from services.prescription_service.prescription_service import PrescriptionService
+from services.admin_service.admin_service import AdminService
 
 app = Flask(__name__)
 
@@ -22,6 +23,7 @@ appointment_service = AppointmentService()
 vector_service = VectorStoreService()
 user_service = UserService()
 prescription_service = PrescriptionService()
+admin_service = AdminService()
 
 # Thiết lập secret key
 app.secret_key = os.urandom(24)  # Tạo một secret key ngẫu nhiên
@@ -135,8 +137,45 @@ def book_appointment():
     except Exception as e:
         return redirect(url_for('index'))
 
+@app.route("/admin", methods=["GET"])
+def admin_root():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+    return redirect(url_for('admin_appointments'))
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        result = admin_service.login_admin(username, password)
+        if result['success']:
+            session['admin_id'] = result['admin']['id']
+            session['admin_username'] = result['admin']['username']
+            return redirect(url_for('admin_appointments'))
+        else:
+            error = result['message']
+    return render_template('admin_login.html', error=error)
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop('admin_id', None)
+    session.pop('admin_username', None)
+    return redirect(url_for('admin_login'))
+
+# Sửa lại decorator cho route admin
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_id' not in session:
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Sửa các route admin dùng admin_login_required
 @app.route("/admin/appointments")
-@admin_required
+@admin_login_required
 def admin_appointments():
     result = appointment_service.get_all_appointments()
     return render_template("admin_appointments.html", appointments=result['appointments'])
@@ -148,7 +187,7 @@ def view_prescriptions():
     return render_template("prescriptions.html", prescriptions=result['prescriptions'])
 
 @app.route("/admin/prescriptions", methods=['GET', 'POST'])
-@admin_required
+@admin_login_required
 def admin_prescriptions():
     result = prescription_service.get_all_prescriptions()
     users = user_service.get_all_users()
@@ -157,7 +196,7 @@ def admin_prescriptions():
                          users=users)
 
 @app.route("/admin/prescriptions/create", methods=['POST'])
-@admin_required
+@admin_login_required
 def create_prescription():
     try:
         prescription_data = {
@@ -167,12 +206,30 @@ def create_prescription():
             'medications': request.form['medications'],
             'notes': request.form.get('notes', '')
         }
-        
         result = prescription_service.create_prescription(prescription_data)
         if result['success']:
             return redirect(url_for('admin_prescriptions'))
     except Exception as e:
-        return redirect(url_for('admin_prescriptions'))
+        pass
+    return redirect(url_for('admin_prescriptions'))
+
+@app.route("/admin/register", methods=["GET", "POST"])
+def admin_register():
+    error = None
+    success = None
+    if request.method == 'POST':
+        admin_data = {
+            'username': request.form['username'],
+            'email': request.form['email'],
+            'password': request.form['password'],
+            'full_name': request.form['full_name']
+        }
+        result = admin_service.register_admin(admin_data)
+        if result['success']:
+            success = 'Registration successful! Please login.'
+        else:
+            error = result['message']
+    return render_template('admin_register.html', error=error, success=success)
 
 if __name__ == '__main__':
     try:
