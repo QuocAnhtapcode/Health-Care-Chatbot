@@ -16,7 +16,7 @@ embeddings = download_hugging_face_embeddings()
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-index_name = "test"
+index_name = "fpt-longchau-data"
 
 pc.create_index(
     name=index_name,

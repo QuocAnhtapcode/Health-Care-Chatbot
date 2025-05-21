@@ -6,14 +6,14 @@ from typing import Dict, Any
 class VectorStoreService:
     def __init__(self):
         self.embeddings = download_hugging_face_embeddings()
-        self.index_name = "test"
+        self.index_name = "fpt-longchau-data"
         self.docsearch = PineconeVectorStore.from_existing_index(
             index_name=self.index_name,
             embedding=self.embeddings
         )
         self.retriever = self.docsearch.as_retriever(
             search_type="similarity", 
-            search_kwargs={"k": 3}
+            search_kwargs={"k": 10}
         )
 
     def get_retriever(self):
